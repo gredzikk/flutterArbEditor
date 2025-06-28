@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net9.0-windows</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UseWPF>true</UseWPF>
+        <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+        <Deterministic>false</Deterministic>
+        <ApplicationIcon>Assets/icons8-template-64.ico</ApplicationIcon>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Themes\" />
+    </ItemGroup>
+    <Target Name="PackageRelease" AfterTargets="Build" Condition=" '$(Configuration)' == 'Release' ">
+        <!-- Get the version from the built assembly -->
+        <GetAssemblyIdentity AssemblyFiles="$(TargetPath)">
+            <Output TaskParameter="Assemblies" ItemName="AssemblyVersionInfo" />
+        </GetAssemblyIdentity>
+        <PropertyGroup>
+            <VersionNumber>%(AssemblyVersionInfo.Version)</VersionNumber>
+            <FormattedVersionNumber>$(VersionNumber.Replace('.', '-'))</FormattedVersionNumber>
+        </PropertyGroup>
+        <!-- Define paths -->
+        <PropertyGroup>
+            <ReleaseDir>$(SolutionDir)Releases</ReleaseDir>
+            <ZipFileName>$(AssemblyName)_$(FormattedVersionNumber)_net8-0.zip</ZipFileName>
+            <ZipFilePath>$(ReleaseDir)\$(ZipFileName)</ZipFilePath>
+        </PropertyGroup>
+        <!-- Create the Releases directory if it doesn't exist -->
+        <MakeDir Directories="$(ReleaseDir)" Condition="!Exists('$(ReleaseDir)')" />
+        <!-- Create the ZIP archive from the build output directory -->
+        <Message Text="Creating release package: $(ZipFilePath)" Importance="high" />
+        <ZipDirectory SourceDirectory="$(TargetDir)" DestinationFile="$(ZipFilePath)" Overwrite="true" />
+    </Target>
+</Project>
