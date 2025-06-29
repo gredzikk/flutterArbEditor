@@ -25,7 +25,11 @@ namespace flutterArbEditor.Models
 
             foreach (var property in json.Properties())
             {
-                if (property.Name.StartsWith("@"))
+                if (property.Name == "@@locale")
+                {
+                    arbFile.LanguageCode = property.Value?.ToString() ?? string.Empty;
+                }
+                else if (property.Name.StartsWith("@"))
                 {
                     // This is metadata for a translation key
                     var keyName = property.Name.Substring(1);
@@ -33,11 +37,7 @@ namespace flutterArbEditor.Models
                     {
                         arbFile.Placeholders[keyName] = metadata;
                     }
-                }
-                else if (property.Name == "@@locale")
-                {
-                    arbFile.LanguageCode = property.Value?.ToString() ?? string.Empty;
-                }
+                }             
                 else if (property.Name.StartsWith("@@"))
                 {
                     // Other metadata
@@ -113,6 +113,14 @@ namespace flutterArbEditor.Models
         public bool HasTranslationKey(string key)
         {
             return Translations.ContainsKey(key);
+        }
+
+        public void EnsureTranslationKey(string key, string defaultValue = "")
+        {
+            if (!Translations.ContainsKey(key))
+            {
+                Translations[key] = defaultValue;
+            }
         }
     }
 }

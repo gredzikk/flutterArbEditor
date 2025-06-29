@@ -6,8 +6,8 @@
     xmlns:local="clr-namespace:flutterArbEditor"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Flutter ARB Editor"
-    Width="1400"
-    Height="900"
+    Width="1200"
+    Height="800"
     AllowDrop="True"
     Drop="Window_Drop"
     FontFamily="Segoe UI"
@@ -17,6 +17,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -32,13 +33,16 @@
                 Content="💾 Save All"
                 Style="{StaticResource SuccessButton}" />
             <Separator />
-            <CheckBox
-                Margin="12,0"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Content="Sort keys on save"
-                IsChecked="{Binding SortKeysOnSave}" />
-            <Separator />
+            <Button
+                Margin="8,0"
+                Command="{Binding SortKeysCommand}"
+                Content="🔤 Sort Keys"
+                Style="{StaticResource PrimaryButton}" />
+            <Button
+                Margin="8,0"
+                Command="{Binding SyncMissingKeysCommand}"
+                Content="🔄 Sync Missing Keys"
+                Style="{StaticResource WarningButton}" />
             <Button
                 Command="{Binding RunFlutterGenCommand}"
                 Content="🚀 Flutter gen-l10n"
@@ -48,72 +52,14 @@
         <!--  Main Content  -->
         <Grid Grid.Row="1" Margin="0,8">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="280" />
-                <ColumnDefinition Width="8" />
-                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="450" />
                 <ColumnDefinition Width="8" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <!--  Files List  -->
-            <GroupBox
-                Grid.Column="0"
-                Header="📁 ARB Files"
-                Style="{StaticResource CardGroupBox}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <ListView
-                        Grid.Row="0"
-                        ItemsSource="{Binding ArbFiles}"
-                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                        SelectedItem="{Binding SelectedFile}">
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="4">
-                                    <TextBlock
-                                        Margin="0,0,0,4"
-                                        FontSize="14"
-                                        FontWeight="SemiBold"
-                                        Text="{Binding FileName}" />
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock VerticalAlignment="Center" Text="🌐 Language: " />
-                                        <TextBox
-                                            MinWidth="60"
-                                            Margin="4,0"
-                                            Text="{Binding LanguageCode, UpdateSourceTrigger=PropertyChanged}" />
-                                    </StackPanel>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-
-                    <StackPanel
-                        Grid.Row="1"
-                        Margin="0,12,0,0"
-                        Orientation="Horizontal">
-                        <Button
-                            Margin="0,0,8,0"
-                            Command="{Binding AddFilesCommand}"
-                            Content="➕ Add"
-                            Style="{StaticResource PrimaryButton}" />
-                        <Button
-                            Command="{Binding RemoveFileCommand}"
-                            CommandParameter="{Binding SelectedFile}"
-                            Content="🗑️ Remove"
-                            Style="{StaticResource DangerButton}" />
-                    </StackPanel>
-                </Grid>
-            </GroupBox>
-
-            <GridSplitter Grid.Column="1" />
-
             <!--  Translation Keys  -->
             <GroupBox
-                Grid.Column="2"
+                Grid.Column="0"
                 Header="🔑 Translation Keys"
                 Style="{StaticResource CardGroupBox}">
                 <Grid>
@@ -153,29 +99,117 @@
                         </StackPanel>
                     </Border>
 
-                    <!--  Keys List  -->
-                    <ListView
-                        Grid.Row="1"
-                        FontFamily="Consolas"
-                        FontSize="13"
-                        ItemsSource="{Binding TranslationKeys}"
-                        SelectedItem="{Binding SelectedKey}" />
+                    <!--  Grouped Keys TreeView  -->
+                    <TreeView Grid.Row="1" ItemsSource="{Binding GroupedTranslationKeys}">
+                        <TreeView.Resources>
+                            <!--  Style for top-level items (TranslationKeyGroup)  -->
+                            <Style x:Key="GroupStyle" TargetType="{x:Type TreeViewItem}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                                <Setter Property="FontWeight" Value="SemiBold" />
+                            </Style>
 
-                    <!--  Sort Button  -->
-                    <Button
-                        Grid.Row="2"
-                        Margin="0,12,0,0"
-                        Command="{Binding SortKeysCommand}"
-                        Content="🔤 Sort Keys"
-                        Style="{StaticResource PrimaryButton}" />
+                            <!--  Style for child items (TranslationKeyViewModel)  -->
+                            <Style x:Key="KeyStyle" TargetType="{x:Type TreeViewItem}">
+                                <Setter Property="FontWeight" Value="Normal" />
+                            </Style>
+                        </TreeView.Resources>
+
+                        <TreeView.ItemContainerStyle>
+                            <Style BasedOn="{StaticResource GroupStyle}" TargetType="TreeViewItem" />
+                        </TreeView.ItemContainerStyle>
+
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate ItemsSource="{Binding Keys}">
+                                <HierarchicalDataTemplate.ItemContainerStyle>
+                                    <Style BasedOn="{StaticResource KeyStyle}" TargetType="TreeViewItem" />
+                                </HierarchicalDataTemplate.ItemContainerStyle>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📁 " />
+                                    <TextBlock FontWeight="Bold" Text="{Binding GroupName}" />
+                                    <TextBlock
+                                        Margin="4,0,0,0"
+                                        FontSize="11"
+                                        Foreground="Gray"
+                                        Text="{Binding Keys.Count, StringFormat=' ({0} keys)'}" />
+                                </StackPanel>
+
+                                <HierarchicalDataTemplate.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Margin="1"
+                                            Padding="4,2"
+                                            CornerRadius="3">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsMissingInSomeFiles}" Value="True">
+                                                            <Setter Property="Background" Value="{StaticResource MissingKeyBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{StaticResource MissingKeyBorderBrush}" />
+                                                            <Setter Property="BorderThickness" Value="1" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Border.InputBindings>
+                                                <MouseBinding
+                                                    Command="{Binding DataContext.SelectKeyCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                                    CommandParameter="{Binding}"
+                                                    MouseAction="LeftClick" />
+                                            </Border.InputBindings>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock
+                                                        FontFamily="Consolas"
+                                                        FontSize="12"
+                                                        Text="{Binding Key}" />
+                                                    <TextBlock
+                                                        Margin="4,0,0,0"
+                                                        Text="⚠️"
+                                                        ToolTip="Missing in some files">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsMissingInSomeFiles}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                                <TextBlock
+                                                    Margin="0,2,0,0"
+                                                    FontSize="10"
+                                                    Foreground="Gray"
+                                                    Text="{Binding StatusText}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsMissingInSomeFiles}" Value="True">
+                                                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </HierarchicalDataTemplate.ItemTemplate>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
                 </Grid>
             </GroupBox>
 
-            <GridSplitter Grid.Column="3" />
+            <GridSplitter Grid.Column="1" />
 
             <!--  Translation Editor  -->
             <GroupBox
-                Grid.Column="4"
+                Grid.Column="2"
                 Header="✏️ Translations"
                 Style="{StaticResource CardGroupBox}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -253,8 +287,9 @@
             </GroupBox>
         </Grid>
 
+
         <!--  Status Bar  -->
-        <StatusBar Grid.Row="2" Margin="0,8,0,0">
+        <StatusBar Grid.Row="3" Margin="0,8,0,0">
             <StatusBarItem>
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="📁 " />
@@ -272,6 +307,12 @@
                     <TextBlock Text="📄 " />
                     <TextBlock FontWeight="SemiBold" Text="{Binding ArbFiles.Count, StringFormat='Files: {0}'}" />
                 </StackPanel>
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Text="{Binding LoadedLanguagesText}" />
             </StatusBarItem>
         </StatusBar>
     </Grid>

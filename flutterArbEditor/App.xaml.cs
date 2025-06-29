@@ -1,12 +1,15 @@
-﻿using System.Windows;
+﻿using System.IO;
+using System.Windows;
+
+using flutterArbEditor.Models;
+
 using Microsoft.Extensions.DependencyInjection;
-using flutterArbEditor.ViewModels;
 
 namespace flutterArbEditor
 {
     public partial class App : Application
     {
-        public static IServiceProvider ServiceProvider { get; private set; }
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
         public App()
         {
@@ -29,6 +32,27 @@ namespace flutterArbEditor
             logger.LogInfo("Flutter ARB Editor starting.");
 
             var mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+
+            // Check if opened with a project file
+            if (e.Args.Length > 0 && File.Exists(e.Args[0]))
+            {
+                var filePath = e.Args[0];
+                if (Path.GetExtension(filePath).Equals(".aep", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        var projectFile = ProjectFile.LoadFromFile(filePath);
+                        // You'll need to add a method to MainViewModel to load project
+                        // mainWindow.LoadProject(projectFile);
+                        logger.LogInfo($"Loaded project from command line: {filePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError($"Failed to load project from command line: {filePath}", ex);
+                    }
+                }
+            }
+
             mainWindow.Show();
         }
 

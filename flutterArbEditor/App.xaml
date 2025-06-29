@@ -14,6 +14,9 @@
             <SolidColorBrush x:Key="SuccessBrush" Color="#FF107C10" />
             <SolidColorBrush x:Key="DangerBrush" Color="#FFD13438" />
             <SolidColorBrush x:Key="AccentBrush" Color="#FF8764B8" />
+            <SolidColorBrush x:Key="WarningBrush" Color="#FFFF9500" />
+            <SolidColorBrush x:Key="MissingKeyBrush" Color="#FFFFF2CC" />
+            <SolidColorBrush x:Key="MissingKeyBorderBrush" Color="#FFFF9500" />
 
             <!--  Custom button styles that work with Fluent  -->
             <Style
@@ -60,6 +63,17 @@
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
+            <Style
+                x:Key="WarningButton"
+                BasedOn="{StaticResource {x:Type Button}}"
+                TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource WarningBrush}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="BorderBrush" Value="{StaticResource WarningBrush}" />
+                <Setter Property="Padding" Value="12,6" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
             <!--  Enhanced GroupBox style  -->
             <Style
                 x:Key="CardGroupBox"
@@ -70,6 +84,80 @@
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            </Style>
+            
+            <!--  Custom CheckBox Style  -->
+            <Style TargetType="CheckBox">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="CheckBox">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- CheckBox visual -->
+                                <Border
+                                    x:Name="CheckBoxBorder"
+                                    Grid.Column="0"
+                                    Width="18"
+                                    Height="18"
+                                    Background="White"
+                                    BorderBrush="#FF666666"
+                                    BorderThickness="2"
+                                    CornerRadius="3"
+                                    VerticalAlignment="Center">
+
+                                    <!-- Check mark -->
+                                    <Path
+                                        x:Name="CheckMark"
+                                        Data="M 2,5 L 6,9 L 14,1"
+                                        Stroke="{StaticResource PrimaryBrush}"
+                                        StrokeThickness="2.5"
+                                        Visibility="Collapsed"
+                                        StrokeLineJoin="Round" />
+                                </Border>
+
+                                <!-- Content -->
+                                <ContentPresenter
+                                    Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Content="{TemplateBinding Content}"
+                                    ContentTemplate="{TemplateBinding ContentTemplate}" />
+                            </Grid>
+
+                            <ControlTemplate.Triggers>
+                                <!-- Checked state -->
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter TargetName="CheckMark" Property="Visibility" Value="Visible" />
+                                    <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFF0F8FF" />
+                                    <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                </Trigger>
+
+                                <!-- Mouse over -->
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                    <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFF8F8F8" />
+                                </Trigger>
+
+                                <!-- Disabled state -->
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="CheckBoxBorder" Property="Background" Value="#FFE0E0E0" />
+                                    <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="#FFAAAAAA" />
+                                    <Setter TargetName="CheckMark" Property="Stroke" Value="#FFAAAAAA" />
+                                    <Setter Property="Foreground" Value="#FFAAAAAA" />
+                                </Trigger>
+
+                                <!-- Focused state -->
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter TargetName="CheckBoxBorder" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
         </ResourceDictionary>
     </Application.Resources>

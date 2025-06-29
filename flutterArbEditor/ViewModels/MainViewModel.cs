@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Linq;
 using flutterArbEditor.Models;
 using flutterArbEditor.Commands;
+using flutterArbEditor.Views;
 
 namespace flutterArbEditor.ViewModels
 {
@@ -13,12 +14,13 @@ namespace flutterArbEditor.ViewModels
         private readonly ILogger _logger;
         private string _selectedKey = string.Empty;
         private string _flutterProjectPath = string.Empty;
-        private ArbFileViewModel? _selectedFile;
         private string _newKeyName = string.Empty;
         private bool _sortKeysOnSave = false;
+        private TranslationKeyViewModel? _selectedKeyViewModel;
 
         public ObservableCollection<ArbFileViewModel> ArbFiles { get; } = new();
         public ObservableCollection<string> TranslationKeys { get; } = new();
+        public ObservableCollection<TranslationKeyGroup> GroupedTranslationKeys { get; } = new();
         public ObservableCollection<TranslationPairViewModel> CurrentTranslations { get; } = new();
 
         public ICommand AddFilesCommand { get; }
@@ -29,6 +31,8 @@ namespace flutterArbEditor.ViewModels
         public ICommand AddNewKeyCommand { get; }
         public ICommand RemoveKeyCommand { get; }
         public ICommand SortKeysCommand { get; }
+        public ICommand SyncMissingKeysCommand { get; }
+        public ICommand SelectKeyCommand { get; }
 
         public string SelectedKey
         {
@@ -42,16 +46,25 @@ namespace flutterArbEditor.ViewModels
             }
         }
 
+        public TranslationKeyViewModel? SelectedKeyViewModel
+        {
+            get => _selectedKeyViewModel;
+            set
+            {
+                if (SetProperty(ref _selectedKeyViewModel, value))
+                {
+                    if (value != null)
+                    {
+                        SelectedKey = value.Key;
+                    }
+                }
+            }
+        }
+
         public string FlutterProjectPath
         {
             get => _flutterProjectPath;
             set => SetProperty(ref _flutterProjectPath, value);
-        }
-
-        public ArbFileViewModel? SelectedFile
-        {
-            get => _selectedFile;
-            set => SetProperty(ref _selectedFile, value);
         }
 
         public string NewKeyName
@@ -66,6 +79,10 @@ namespace flutterArbEditor.ViewModels
             set => SetProperty(ref _sortKeysOnSave, value);
         }
 
+        public string LoadedLanguagesText => ArbFiles.Count > 0
+            ? $"Loaded languages: {string.Join(", ", ArbFiles.Select(f => f.LanguageCode).Where(l => !string.IsNullOrEmpty(l)).OrderBy(l => l))}"
+            : "No files loaded";
+
         public MainViewModel(ILogger logger)
         {
             _logger = logger;
@@ -77,29 +94,35 @@ namespace flutterArbEditor.ViewModels
             AddNewKeyCommand = new RelayCommand(AddNewKey, CanAddNewKey);
             RemoveKeyCommand = new RelayCommand(RemoveKey, CanRemoveKey);
             SortKeysCommand = new RelayCommand(SortKeys);
+            SyncMissingKeysCommand = new RelayCommand(SyncMissingKeys);
+            SelectKeyCommand = new RelayCommand<TranslationKeyViewModel>(SelectKey);
+
+            ArbFiles.CollectionChanged += (s, e) => OnPropertyChanged(nameof(LoadedLanguagesText));
         }
 
         private void AddFiles()
         {
-            var openFileDialog = new Microsoft.Win32.OpenFileDialog
+            var dialog = new AddFilesDialog(ArbFiles);
+
+            // Handle project loading
+            dialog.ViewModel.ProjectLoaded += (sender, projectFile) =>
             {
-                Filter = "ARB files (*.arb)|*.arb|All files (*.*)|*.*",
-                Multiselect = true
+                FlutterProjectPath = projectFile.FlutterProjectPath;
+                SortKeysOnSave = projectFile.SortKeysOnSave;
             };
 
-            if (openFileDialog.ShowDialog() == true)
+            if (dialog.ShowDialog() == true)
             {
-                foreach (var fileName in openFileDialog.FileNames)
+                // Clear current files first
+                ArbFiles.Clear();
+
+                // Add all files from dialog (both existing and new)
+                foreach (var preview in dialog.ViewModel.PreviewFiles)
                 {
-                    try
+                    if (preview.ArbFile != null)
                     {
-                        var arbFile = ArbFile.LoadFromFile(fileName);
-                        ArbFiles.Add(new ArbFileViewModel(arbFile));
-                        _logger.LogInfo($"Loaded ARB file: {fileName}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError($"Failed to load ARB file: {fileName}", ex);
+                        ArbFiles.Add(new ArbFileViewModel(preview.ArbFile));
+                        _logger.LogInfo($"Loaded ARB file: {preview.FilePath}");
                     }
                 }
                 RefreshTranslationKeys();
@@ -128,6 +151,14 @@ namespace flutterArbEditor.ViewModels
                 {
                     _logger.LogError($"Failed to save ARB file: {arbFileViewModel.ArbFile.FilePath}", ex);
                 }
+            }
+        }
+
+        private void SelectKey(TranslationKeyViewModel? keyViewModel)
+        {
+            if (keyViewModel != null)
+            {
+                SelectedKeyViewModel = keyViewModel;
             }
         }
 
@@ -251,13 +282,84 @@ namespace flutterArbEditor.ViewModels
             _logger.LogInfo("Translation keys sorted alphabetically");
         }
 
+        private void SyncMissingKeys()
+        {
+            if (ArbFiles.Count == 0)
+                return;
+
+            // Get all unique keys
+            var allKeys = ArbFiles.SelectMany(f => f.ArbFile.Translations.Keys).Distinct().ToList();
+            int addedKeysCount = 0;
+
+            // Ensure all files have all keys
+            foreach (var key in allKeys)
+            {
+                foreach (var arbFile in ArbFiles)
+                {
+                    if (!arbFile.ArbFile.HasTranslationKey(key))
+                    {
+                        arbFile.ArbFile.EnsureTranslationKey(key, string.Empty);
+                        addedKeysCount++;
+                    }
+                }
+            }
+
+            RefreshTranslationKeys();
+            _logger.LogInfo($"Synchronized {addedKeysCount} missing translation keys across all files");
+        }
+
         private void RefreshTranslationKeys()
         {
+            // Update flat list for backward compatibility
             TranslationKeys.Clear();
             var allKeys = ArbFiles.SelectMany(f => f.ArbFile.Translations.Keys).Distinct().OrderBy(k => k);
             foreach (var key in allKeys)
             {
                 TranslationKeys.Add(key);
+            }
+
+            // Update grouped list with missing key detection
+            RefreshGroupedTranslationKeys();
+        }
+
+        private void RefreshGroupedTranslationKeys()
+        {
+            GroupedTranslationKeys.Clear();
+
+            if (ArbFiles.Count == 0)
+                return;
+
+            var allKeys = ArbFiles.SelectMany(f => f.ArbFile.Translations.Keys).Distinct().OrderBy(k => k).ToList();
+            var totalFiles = ArbFiles.Count;
+
+            // Group keys by prefix (everything before the first underscore)
+            var groupedKeys = allKeys.GroupBy(key =>
+            {
+                var underscoreIndex = key.IndexOf('_');
+                return underscoreIndex > 0 ? key.Substring(0, underscoreIndex) : "General";
+            }).OrderBy(g => g.Key);
+
+            foreach (var group in groupedKeys)
+            {
+                var keyGroup = new TranslationKeyGroup { GroupName = group.Key };
+
+                foreach (var key in group.OrderBy(k => k))
+                {
+                    var filesWithKey = ArbFiles.Count(f => f.ArbFile.HasTranslationKey(key));
+                    var isMissing = filesWithKey < totalFiles;
+
+                    var keyViewModel = new TranslationKeyViewModel
+                    {
+                        Key = key,
+                        IsMissingInSomeFiles = isMissing,
+                        TotalFiles = totalFiles,
+                        FilesWithKey = filesWithKey
+                    };
+
+                    keyGroup.Keys.Add(keyViewModel);
+                }
+
+                GroupedTranslationKeys.Add(keyGroup);
             }
         }
 

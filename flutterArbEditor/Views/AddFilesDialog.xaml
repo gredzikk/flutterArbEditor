@@ -1,0 +1,320 @@
+﻿<Window
+    x:Class="flutterArbEditor.Views.AddFilesDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="clr-namespace:flutterArbEditor.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="ARB Editor - Project Manager"
+    Width="800"
+    Height="650"
+    ResizeMode="CanResize"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock
+                FontSize="18"
+                FontWeight="Bold"
+                Text="Project Manager" />
+            <TextBlock
+                Margin="0,4,0,0"
+                FontSize="12"
+                Foreground="Gray"
+                Text="Manage your ARB files, save and load projects, and configure your workspace." />
+        </StackPanel>
+
+        <!--  Project Info and Controls  -->
+        <Border
+            Grid.Row="1"
+            Margin="0,0,0,16"
+            Padding="12"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock FontWeight="SemiBold" Text="📁 Project Information" />
+                    <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center" Text="Project Name: " />
+                        <TextBox
+                            Width="200"
+                            Margin="8,0,0,0"
+                            Text="{Binding ProjectName, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button
+                        Margin="0,0,8,0"
+                        Command="{Binding NewProjectCommand}"
+                        Content="🆕 New"
+                        Style="{StaticResource PrimaryButton}"
+                        ToolTip="Create a new project" />
+                    <Button
+                        Margin="0,0,8,0"
+                        Command="{Binding LoadProjectCommand}"
+                        Content="📂 Load"
+                        Style="{StaticResource PrimaryButton}"
+                        ToolTip="Load an existing project" />
+                    <Button
+                        Command="{Binding SaveProjectCommand}"
+                        Content="💾 Save"
+                        Style="{StaticResource SuccessButton}"
+                        ToolTip="Save current project" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!--  File List  -->
+        <Border
+            Grid.Row="2"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!--  Toolbar  -->
+                <Border
+                    Grid.Row="0"
+                    Padding="8"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="0,0,0,1">
+                    <Grid>
+                        <StackPanel HorizontalAlignment="Left" Orientation="Horizontal">
+                            <Button
+                                Command="{Binding BrowseFilesCommand}"
+                                Content="📁 Add Files..."
+                                Style="{StaticResource PrimaryButton}" />
+                            <Button
+                                Margin="8,0,0,0"
+                                Command="{Binding ClearAllCommand}"
+                                Content="🗑️ Clear All"
+                                Style="{StaticResource DangerButton}" />
+                        </StackPanel>
+
+                        <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Text="📊 " />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="{Binding CurrentlyLoadedCount, StringFormat='Loaded: {0}'}" />
+                            <TextBlock
+                                Margin="8,0"
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                Text=" | " />
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                FontSize="12"
+                                FontWeight="SemiBold"
+                                Text="{Binding NewFilesCount, StringFormat='New: {0}'}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!--  Files Preview  -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl Margin="8" ItemsSource="{Binding PreviewFiles}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,4"
+                                    Padding="12"
+                                    BorderThickness="1"
+                                    CornerRadius="4">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+                                            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsCurrentlyLoaded}" Value="True">
+                                                    <Setter Property="Background" Value="#FFE8F4FD" />
+                                                    <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <!--  Status Indicator  -->
+                                        <Border
+                                            Grid.Column="0"
+                                            Width="8"
+                                            Height="8"
+                                            Margin="0,0,12,0"
+                                            VerticalAlignment="Center"
+                                            CornerRadius="4">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{StaticResource SuccessBrush}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsCurrentlyLoaded}" Value="False">
+                                                            <Setter Property="Background" Value="{StaticResource WarningBrush}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+
+                                        <!--  File Information  -->
+                                        <StackPanel Grid.Column="1">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock FontWeight="SemiBold" Text="📄 " />
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding FileName}" />
+                                                <TextBlock
+                                                    Margin="8,0,0,0"
+                                                    FontSize="11"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding StatusText}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsCurrentlyLoaded}" Value="False">
+                                                                    <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <TextBlock
+                                                Margin="0,4,0,0"
+                                                FontSize="11"
+                                                Foreground="Gray"
+                                                Text="{Binding FilePath}" />
+                                            <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                                                <TextBlock FontSize="12" Text="🌐 " />
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding LanguageCode}" />
+                                                <TextBlock
+                                                    Margin="12,0"
+                                                    FontSize="12"
+                                                    Text="🔑 " />
+                                                <TextBlock
+                                                    FontSize="12"
+                                                    FontWeight="SemiBold"
+                                                    Text="{Binding KeyCount, StringFormat='{}{0} keys'}" />
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!--  File Actions  -->
+                                        <StackPanel
+                                            Grid.Column="2"
+                                            Margin="12,0"
+                                            Orientation="Horizontal">
+                                            <Button
+                                                Width="80"
+                                                Margin="0,0,4,0"
+                                                Click="ShowInExplorer_Click"
+                                                Content="📁 Show"
+                                                Style="{StaticResource PrimaryButton}"
+                                                Tag="{Binding FilePath}"
+                                                ToolTip="Show in Explorer" />
+                                        </StackPanel>
+
+                                        <!--  Remove Button  -->
+                                        <Button
+                                            Grid.Column="3"
+                                            Width="30"
+                                            Height="30"
+                                            Command="{Binding DataContext.RemoveFileCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            Content="❌"
+                                            Style="{StaticResource DangerButton}"
+                                            ToolTip="Remove file from project" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <!--  Empty state  -->
+                <TextBlock
+                    Grid.Row="1"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    Foreground="Gray"
+                    Text="No files in project. Click 'Add Files...' to add ARB files or 'Load' to open an existing project."
+                    Visibility="{Binding HasNoFiles, Converter={x:Static converters:BooleanToVisibilityConverter.Instance}}" />
+            </Grid>
+        </Border>
+
+        <!--  Summary  -->
+        <Border
+            Grid.Row="3"
+            Margin="0,16,0,0"
+            Padding="12"
+            Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+            BorderThickness="1"
+            CornerRadius="4">
+            <StackPanel>
+                <TextBlock FontWeight="SemiBold" Text="📊 Project Summary" />
+                <StackPanel Margin="0,4,0,0" Orientation="Horizontal">
+                    <TextBlock Text="Total files: " />
+                    <TextBlock FontWeight="SemiBold" Text="{Binding PreviewFiles.Count}" />
+                    <TextBlock Margin="16,0,0,0" Text="Languages: " />
+                    <TextBlock FontWeight="SemiBold" Text="{Binding UniqueLanguages}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!--  Dialog Buttons  -->
+        <StackPanel
+            Grid.Row="4"
+            Margin="0,16,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Width="100"
+                Margin="0,0,8,0"
+                Command="{Binding CancelCommand}"
+                Content="Cancel"
+                IsCancel="True" />
+            <Button
+                Width="120"
+                Command="{Binding LoadFilesCommand}"
+                Content="Apply Changes"
+                IsDefault="True"
+                Style="{StaticResource SuccessButton}" />
+        </StackPanel>
+    </Grid>
+</Window>
