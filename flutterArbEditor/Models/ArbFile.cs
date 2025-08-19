@@ -41,8 +41,7 @@ namespace flutterArbEditor.Models
                 else if (property.Name.StartsWith("@@"))
                 {
                     // Other metadata
-                    if (arbFile.Metadata == null)
-                        arbFile.Metadata = new JObject();
+                    arbFile.Metadata ??= [];
                     arbFile.Metadata[property.Name] = property.Value;
                 }
                 else
@@ -59,7 +58,6 @@ namespace flutterArbEditor.Models
         {
             var json = new JObject();
 
-            // Add metadata first
             if (Metadata != null)
             {
                 foreach (var metadata in Metadata.Properties())
@@ -73,7 +71,6 @@ namespace flutterArbEditor.Models
                 json["@@locale"] = LanguageCode;
             }
 
-            // Add translations (sorted or original order)
             IEnumerable<KeyValuePair<string, string>> translationsToAdd = sortKeys
                 ? Translations.OrderBy(t => t.Key)
                 : Translations;
@@ -83,7 +80,6 @@ namespace flutterArbEditor.Models
                 json[translation.Key] = translation.Value;
             }
 
-            // Add placeholders (sorted or original order)
             IEnumerable<KeyValuePair<string, JObject>> placeholdersToAdd = sortKeys
                 ? Placeholders.OrderBy(p => p.Key)
                 : Placeholders;

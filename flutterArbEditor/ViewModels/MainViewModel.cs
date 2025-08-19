@@ -104,7 +104,6 @@ namespace flutterArbEditor.ViewModels
         {
             var dialog = new AddFilesDialog(ArbFiles);
 
-            // Handle project loading
             dialog.ViewModel.ProjectLoaded += (sender, projectFile) =>
             {
                 FlutterProjectPath = projectFile.FlutterProjectPath;
@@ -113,10 +112,8 @@ namespace flutterArbEditor.ViewModels
 
             if (dialog.ShowDialog() == true)
             {
-                // Clear current files first
                 ArbFiles.Clear();
 
-                // Add all files from dialog (both existing and new)
                 foreach (var preview in dialog.ViewModel.PreviewFiles)
                 {
                     if (preview.ArbFile != null)
@@ -230,14 +227,12 @@ namespace flutterArbEditor.ViewModels
 
             string keyName = NewKeyName.Trim();
 
-            // Check if key already exists
             if (ArbFiles.Any(f => f.ArbFile.HasTranslationKey(keyName)))
             {
                 _logger.LogWarning($"Translation key '{keyName}' already exists");
                 return;
             }
 
-            // Add key to all ARB files
             foreach (var arbFile in ArbFiles)
             {
                 arbFile.ArbFile.AddTranslationKey(keyName, string.Empty);
@@ -259,7 +254,6 @@ namespace flutterArbEditor.ViewModels
             if (string.IsNullOrEmpty(SelectedKey))
                 return;
 
-            // Remove key from all ARB files
             foreach (var arbFile in ArbFiles)
             {
                 arbFile.ArbFile.RemoveTranslationKey(SelectedKey);
@@ -287,11 +281,9 @@ namespace flutterArbEditor.ViewModels
             if (ArbFiles.Count == 0)
                 return;
 
-            // Get all unique keys
             var allKeys = ArbFiles.SelectMany(f => f.ArbFile.Translations.Keys).Distinct().ToList();
             int addedKeysCount = 0;
 
-            // Ensure all files have all keys
             foreach (var key in allKeys)
             {
                 foreach (var arbFile in ArbFiles)
@@ -310,7 +302,6 @@ namespace flutterArbEditor.ViewModels
 
         private void RefreshTranslationKeys()
         {
-            // Update flat list for backward compatibility
             TranslationKeys.Clear();
             var allKeys = ArbFiles.SelectMany(f => f.ArbFile.Translations.Keys).Distinct().OrderBy(k => k);
             foreach (var key in allKeys)
@@ -318,7 +309,6 @@ namespace flutterArbEditor.ViewModels
                 TranslationKeys.Add(key);
             }
 
-            // Update grouped list with missing key detection
             RefreshGroupedTranslationKeys();
         }
 
@@ -332,7 +322,6 @@ namespace flutterArbEditor.ViewModels
             var allKeys = ArbFiles.SelectMany(f => f.ArbFile.Translations.Keys).Distinct().OrderBy(k => k).ToList();
             var totalFiles = ArbFiles.Count;
 
-            // Group keys by prefix (everything before the first underscore)
             var groupedKeys = allKeys.GroupBy(key =>
             {
                 var underscoreIndex = key.IndexOf('_');

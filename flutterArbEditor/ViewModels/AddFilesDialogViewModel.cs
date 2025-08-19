@@ -4,10 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-
 using flutterArbEditor.Commands;
 using flutterArbEditor.Models;
-
 using Microsoft.Win32;
 
 namespace flutterArbEditor.ViewModels
@@ -104,7 +102,6 @@ namespace flutterArbEditor.ViewModels
                 OnPropertyChanged(nameof(NewFilesCount));
             };
 
-            // Load currently loaded files
             LoadCurrentFiles();
         }
 
@@ -137,7 +134,6 @@ namespace flutterArbEditor.ViewModels
             {
                 foreach (var fileName in openFileDialog.FileNames)
                 {
-                    // Skip if already added
                     if (PreviewFiles.Any(f => f.FilePath.Equals(fileName, StringComparison.OrdinalIgnoreCase)))
                         continue;
 
@@ -206,14 +202,13 @@ namespace flutterArbEditor.ViewModels
                 {
                     var projectFile = ProjectFile.CreateFromCurrentState(
                         ProjectName,
-                        string.Empty, // This will be set from MainViewModel
-                        false, // This will be set from MainViewModel
+                        string.Empty, 
+                        false, 
                         PreviewFiles.Select(f => f.FilePath)
                     );
 
                     projectFile.SaveToFile(saveFileDialog.FileName);
 
-                    // Update project name from filename if empty
                     if (string.IsNullOrEmpty(ProjectName) || ProjectName == "Untitled Project")
                     {
                         ProjectName = Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
@@ -221,7 +216,6 @@ namespace flutterArbEditor.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    // Handle error - you might want to show a message box here
                     System.Windows.MessageBox.Show($"Failed to save project: {ex.Message}", "Error",
                         System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
@@ -243,7 +237,6 @@ namespace flutterArbEditor.ViewModels
                     var projectFile = ProjectFile.LoadFromFile(openFileDialog.FileName);
                     ProjectLoaded?.Invoke(this, projectFile);
 
-                    // Clear current files and load project files
                     PreviewFiles.Clear();
 
                     foreach (var filePath in projectFile.ArbFilePaths)

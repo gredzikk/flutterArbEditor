@@ -8,12 +8,12 @@ using Newtonsoft.Json.Linq;
 
 namespace flutterArbEditor.ViewModels
 {
-    public class TranslationPairViewModel : INotifyPropertyChanged
+    public class TranslationPairViewModel(ArbFile arbFile, string key, string translation, JObject? placeholder) : INotifyPropertyChanged
     {
-        private readonly ArbFile _arbFile;
-        private readonly string _key;
-        private string _translation;
-        private string _placeholderJson;
+        private readonly ArbFile _arbFile = arbFile;
+        private readonly string _key = key;
+        private string _translation = translation;
+        private string _placeholderJson = placeholder?.ToString() ?? string.Empty;
 
         public string LanguageCode => _arbFile.LanguageCode;
         public string FileName => Path.GetFileName(_arbFile.FilePath);
@@ -55,14 +55,6 @@ namespace flutterArbEditor.ViewModels
                     }
                 }
             }
-        }
-
-        public TranslationPairViewModel(ArbFile arbFile, string key, string translation, JObject? placeholder)
-        {
-            _arbFile = arbFile;
-            _key = key;
-            _translation = translation;
-            _placeholderJson = placeholder?.ToString() ?? string.Empty;
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

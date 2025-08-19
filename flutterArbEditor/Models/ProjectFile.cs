@@ -39,7 +39,7 @@ namespace flutterArbEditor.Models
                 ProjectName = projectName,
                 FlutterProjectPath = flutterProjectPath,
                 SortKeysOnSave = sortKeysOnSave,
-                ArbFilePaths = arbFilePaths.ToList(),
+                ArbFilePaths = [.. arbFilePaths],
                 LastModified = DateTime.Now
             };
         }
